@@ -38,6 +38,9 @@ export function renderList (
     /**zh-cn
      * Object.keys同for..in一样, 不能保证遍历顺序
      * [for-in遍历顺序问题](http://w3help.org/zh-cn/causes/SJ9011)
+     * Object.keys的[规范](http://www.ecma-international.org/ecma-262/6.0/#sec-object.keys)
+     * 中指出, If an implementation defines a specific order of enumeration for the for-in statement, the same order must be used for the elements of the array returned in step 4(笔者注: 这里的第四步指的是Object.keys内部实现的第四步).
+     * 如上, 规范中规定当for-in的返回有**特定顺序**时, Object.keys的遍历顺序应当与for-in一致
      */
     keys = Object.keys(val)
     ret = new Array(keys.length)
