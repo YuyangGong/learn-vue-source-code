@@ -44,7 +44,7 @@
 
     Each platform module contains three parts: `compiler`, `runtime` and `server`, corresponding to the three directories above. Each part contains platform-specific modules/utilities which are then imported and injected to the core counterparts in platform-specific entry files. For example, the code implementing the logic behind `v-bind:class` is in `platforms/web/runtime/modules/class.js` - which is imported in `entries/web-runtime.js` and used to create the browser-specific vdom patching function.
 
-  - **`sfc`**: contains single-file component (`*.vue` files) parsing logic. This is used in the `vue-template-compiler` package.
+  - **`sfc`**: 包含单文件组件(`.vue`)的解析逻辑, 使用于`vue-template-compiler`npm包。
 
   - **`shared`**: 包括通用的工具函数
 
