@@ -245,9 +245,15 @@ export function parseHTML (html, options) {
             .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
             .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1')
         }
+        /**zh-cn
+         * 忽略开头的'\n' 这里是用于textarea
+         */
         if (shouldIgnoreFirstNewline(stackedTag, text)) {
           text = text.slice(1)
         }
+        /**zh-cn
+         * 处理纯文本
+         */
         if (options.chars) {
           options.chars(text)
         }
@@ -324,9 +330,17 @@ export function parseHTML (html, options) {
     const unarySlash = match.unarySlash
 
     if (expectHTML) {
+      /**zh-cn
+       * 当上一个标签是p, 且目前的标签是一个必须闭合的标签时候, 将前一个p当做自闭合的p标签
+       * eg: `<p><div>`这种情况, 将p当做自闭合标签
+       */
       if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
         parseEndTag(lastTag)
       }
+      /**zh-cn
+       * 如果上一个标签可以省略闭合标签, 且目前的开始标签与其一致, 将其做结束标签处理(因为这种标签不能相互嵌套)
+       * eg: `<li><li>`
+       */
       if (canBeLeftOpenTag(tagName) && lastTag === tagName) {
         parseEndTag(tagName)
       }
@@ -392,7 +406,6 @@ export function parseHTML (html, options) {
       // 如果没有传入标签名, 则记为0
       pos = 0
     }
-
     if (pos >= 0) {
       // Close all the open elements, up the stack
       // 关闭栈上所有的中间标签(处于tagName开始标签之后的未闭合标签)
@@ -417,6 +430,7 @@ export function parseHTML (html, options) {
       stack.length = pos
       // pos不为0时, 即栈未清空, 还有其他标签时, 设置lastTag为栈最上面的标签
       lastTag = pos && stack[pos - 1].tag
+    // 当pos小于0的时候, 代表其栈中未找到匹配的开始标签, 则判断其是否为自闭合标签(</br>, </p>, WHY？只有这俩种标签可以自闭合么？)
     // 处理br标签的逻辑
     } else if (lowerCasedTagName === 'br') {
       if (options.start) {
