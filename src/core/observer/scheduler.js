@@ -10,6 +10,7 @@ import {
   devtools
 } from '../util/index'
 
+// 用于避免循环更新
 export const MAX_UPDATE_COUNT = 100
 
 const queue: Array<Watcher> = []
@@ -23,9 +24,13 @@ let index = 0
 /**
  * Reset the scheduler's state.
  */
+/**zh-cn
+ * 重置scheduler的状态
+ */
 function resetSchedulerState () {
   index = queue.length = activatedChildren.length = 0
   has = {}
+  // 生产环境下不重置circular
   if (process.env.NODE_ENV !== 'production') {
     circular = {}
   }
@@ -35,6 +40,9 @@ function resetSchedulerState () {
 /**
  * Flush both queues and run the watchers.
  */
+ /**zh-cn
+  * 依次出队列并且执行watcher, 直至队列清空
+  */
 function flushSchedulerQueue () {
   flushing = true
   let watcher, id
@@ -47,10 +55,20 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  /**zh-cn
+   * 排序的目的有:
+   * 1. 以 父组件到子组件 的顺序依次更新组件(因为父组件在子组件之前渲染)
+   * 2. 组件中用户的watch应该在渲染的watch之前执行(因为用户的watch在渲染watch之前创建)
+   * 3. 当父组件的watch执行时组件被销毁,  忽略子组件的watch
+   */
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  /**zh-cn
+   * 不缓存队列长度, 因为可能在执行队列中的watcher的时候,
+   * 其watch给队列动态push了状态
+   */
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     id = watcher.id
