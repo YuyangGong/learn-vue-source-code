@@ -3,6 +3,7 @@
 /**
  * Check if a string starts with $ or _
  */
+ // 检查一个字符串是否以`$`或`_`开头
 export function isReserved (str: string): boolean {
   const c = (str + '').charCodeAt(0)
   return c === 0x24 || c === 0x5F
@@ -27,12 +28,15 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
 /**
  * Parse simple path.
  */
+// 解析简单的路径(如`obj.attr`)
 const bailRE = /[^\w.$]/
 export function parsePath (path: string): any {
+  // 包含不合法字符的时候直接返回undefined
   if (bailRE.test(path)) {
     return
   }
   const segments = path.split('.')
+  // 返回一个函数, 接受对象作为参数, 返回此对象具体path的值
   return function (obj) {
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return

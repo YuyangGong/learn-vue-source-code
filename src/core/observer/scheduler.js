@@ -75,6 +75,10 @@ function flushSchedulerQueue () {
     has[id] = null
     watcher.run()
     // in dev build, check and stop circular updates.
+    /**zh-cn
+     * 在非生产环境中检查并停止循环更新
+     * 之前我们设置了has[i]为null, 如果在此处watch中
+     */
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > MAX_UPDATE_COUNT) {
@@ -92,23 +96,28 @@ function flushSchedulerQueue () {
   }
 
   // keep copies of post queues before resetting state
+  // 在更新状态前保持队列的拷贝, 以便在重置调度器状态后可以用于调用相关生命周期钩子
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
+  // 需在执行钩子之前reset状态,因为可能在下面的生命周期钩子里再次修改数据(WHY？如果再次修改数据, 会flush么)
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // 调用组件相关生命周期钩子(activated在updated之前)
   callActivatedHooks(activatedQueue)
   callUpdatedHooks(updatedQueue)
 
   // devtool hook
+  // 触发devtools钩子
   /* istanbul ignore if */
   if (devtools && config.devtools) {
     devtools.emit('flush')
   }
 }
-
+// 执行updated钩子
 function callUpdatedHooks (queue) {
+  // 先进的后执行？, 为什么要缓存, 而且从高位向低位执行？
   let i = queue.length
   while (i--) {
     const watcher = queue[i]
@@ -123,13 +132,21 @@ function callUpdatedHooks (queue) {
  * Queue a kept-alive component that was activated during patch.
  * The queue will be processed after the entire tree has been patched.
  */
+/**zh-cn
+ * 将一个在patch过程中已经activated的kept-alive组件排入队中
+ * 此队列将在整棵完整的树都被Patch后进行相关操作
+ */
 export function queueActivatedComponent (vm: Component) {
   // setting _inactive to false here so that a render function can
   // rely on checking whether it's in an inactive tree (e.g. router-view)
+  /**zh-cn
+   * 通过设置inactive, 可以方便render函数依赖其检查相关vm是否在inactive树中
+   */
   vm._inactive = false
   activatedChildren.push(vm)
 }
 
+// 执行队列中所有元素的activated钩子
 function callActivatedHooks (queue) {
   for (let i = 0; i < queue.length; i++) {
     queue[i]._inactive = true
@@ -144,13 +161,19 @@ function callActivatedHooks (queue) {
  */
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 如果has[id]不为null就代表已经进过队列, 为避免watch循环执行, 直接跳过
   if (has[id] == null) {
     has[id] = true
+    // 当不在flushing状态时, 将watcher直接push进队列中
     if (!flushing) {
       queue.push(watcher)
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      /**zh-cn
+       * 当正在flushing时, 将watcher按照id顺序插入到队列中, 但
+       * 若此watcher执行过, 就放在目前正在执行的索引后的位置
+       */
       let i = queue.length - 1
       while (i > index && queue[i].id > watcher.id) {
         i--
@@ -158,6 +181,7 @@ export function queueWatcher (watcher: Watcher) {
       queue.splice(i + 1, 0, watcher)
     }
     // queue the flush
+    // 如果waiting不存在就, nextTick时执行我们的queue
     if (!waiting) {
       waiting = true
       nextTick(flushSchedulerQueue)

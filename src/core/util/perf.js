@@ -13,6 +13,7 @@ if (process.env.NODE_ENV !== 'production') {
     perf.clearMarks &&
     perf.clearMeasures
   ) {
+    // 计算时间并清空marks
     mark = tag => perf.mark(tag)
     measure = (name, startTag, endTag) => {
       perf.measure(name, startTag, endTag)
