@@ -1,3 +1,4 @@
+
 /* @flow */
 
 import Dep from './dep'
@@ -69,6 +70,9 @@ export class Observer {
    * getter/setters. This method should only be called when
    * value type is Object.
    */
+  /**zh-cn
+   * 遍历对象的每个属性并将其转换为getter/setters
+   */
   walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
@@ -78,6 +82,9 @@ export class Observer {
 
   /**
    * Observe a list of Array items.
+   */
+  /**zh-cn
+   * 观察数组每一项
    */
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
@@ -121,13 +128,26 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
+/**zh-cn
+ * 尝试为传入的value创建一个observer实例,
+ * 如果成功observed则返回这个新的observer实例,
+ * 如果value已经被observe过, 则返回已经存在的observer实例
+ */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
+  // 如不是对象 或者是vm实例, 则直接返回(不需要observe)
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
+  // 如果已经被观察过就返回已经存在的observe实例
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
+  // 满足以下5点才回对value进行观察
+  // 1. 状态中设置的shouldConvert为ture
+  // 2. 非服务器端渲染
+  // 3. 数组或纯对象
+  // 4. 对象(数组)可拓展, (没有被Object.seal 或 Object.freeze限制), 可以创建新属性
+  // 5. 不是Vue实例 (WHY)
   } else if (
     observerState.shouldConvert &&
     !isServerRendering() &&
@@ -137,6 +157,8 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   ) {
     ob = new Observer(value)
   }
+  // 如果是作为根节点数据, 并且当前value能够被observe,
+  // 则ob.vmCount增1, 以正确记录数量
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -146,6 +168,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 /**
  * Define a reactive property on an Object.
  */
+// 定义对象上的一个响应式属性
 export function defineReactive (
   obj: Object,
   key: string,
@@ -153,21 +176,26 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 创建一个dep实例
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
+  // 当property存在, 但是其不可配置时, 直接返回, 不定义其响应式
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  // 拿到用户预定义的getter/setter(如果有的话)
   const getter = property && property.get
   const setter = property && property.set
 
+  // 根据shallow标记, 决定是否对其val也进行观察
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
+    // get和set本质上操作的都是val, 利用词法作用域保存在context中
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
@@ -184,18 +212,23 @@ export function defineReactive (
     set: function reactiveSetter (newVal) {
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // 当值没改变时, 直接return跳过 (后面那个判断用于NaN)
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
       /* eslint-enable no-self-compare */
+      // WHY: 只有非生产环境才能使用customSetter?
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter()
       }
+      // 这是的setter是用于预定义的setter, 如果存在则调用此setter
       if (setter) {
         setter.call(obj, newVal)
+      // 若setter不存在, 直接将新值赋值给val
       } else {
         val = newVal
       }
+      // val发生了改变, 重新observe
       childOb = !shallow && observe(newVal)
       dep.notify()
     }
@@ -207,17 +240,26 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
+/**zh-cn
+ * 设置对象属性。
+ * 如果设置的是对象原本不存在的属性, 将会触发修改通知
+ */
 export function set (target: Array<any> | Object, key: any, val: any): any {
+  // 如果设置的是对象具体索引的值, 通过splice来做修改
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
   }
+  // 如果存在于对象上, 但是不存在于其Object原型上, 则直接赋值。
+  // 为什么这里不用hasOwn呢？原型链中间部分的也可以覆盖？
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
   const ob = (target: any).__ob__
+  // 避免在运行时给Vue实例或根data设置响应式属性, 
+  // 应该在其data选项中声明
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -225,10 +267,13 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
+  // 当target不是被观察的对象时, 直接设置其key
   if (!ob) {
     target[key] = val
     return val
   }
+  // 设置的是原本object上不存在的属性的话, 需要定义其为响应式,
+  // 并触发改变通知
   defineReactive(ob.value, key, val)
   ob.dep.notify()
   return val
@@ -237,7 +282,11 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
 /**
  * Delete a property and trigger change if necessary.
  */
+/**zh-cn
+ * 删除一个属性并且在必要时触发改变
+ */
 export function del (target: Array<any> | Object, key: any) {
+  // 数组, 且key为索引的话, 直接splice删除
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.splice(key, 1)
     return
@@ -250,19 +299,26 @@ export function del (target: Array<any> | Object, key: any) {
     )
     return
   }
+  // 如果不存在其对象自身上, 则直接return。
   if (!hasOwn(target, key)) {
     return
   }
+  // 删除相关属性
   delete target[key]
   if (!ob) {
     return
   }
+  // 触发通知
   ob.dep.notify()
 }
 
 /**
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
+ */
+/**zh-cn
+ * 当数组被touch时, 触发各个数组元素的depend(如果有的话),
+ * 不同于普通Object, 数组的索引并不能设置getter/setter
  */
 function dependArray (value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
