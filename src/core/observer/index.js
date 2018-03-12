@@ -14,6 +14,7 @@ import {
   isServerRendering
 } from '../util/index'
 
+// 返回实例上所有的属性名(不包括原型上的属性, 但是包括自身不可枚举的属性）
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 
 /**
@@ -21,6 +22,11 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
  * also converted to become reactive. However when passing down props,
  * we don't want to force conversion because the value may be a nested value
  * under a frozen data structure. Converting it would defeat the optimization.
+ */
+/** zh-cn
+ * 当设置了一个响应式的属性, 默认被设置的新值也会被转化为响应式的 
+ * 然而当传递props时，其可能是一个嵌套的被frozen的数据结构,
+ * 转化它将会影响优化, 所以我们不强制转化它
  */
 export const observerState = {
   shouldConvert: true
@@ -32,6 +38,10 @@ export const observerState = {
  * object's property keys into getter/setters that
  * collect dependencies and dispatches updates.
  */
+/* zh-cn
+ * 观察者实例用于观察被观察对象(有点绕...), 其会将被观察对象的
+ * 属性转化为getter/setters, 用以收集依赖并分发更新
+ */
 export class Observer {
   value: any;
   dep: Dep;
@@ -41,6 +51,7 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // 给value绑定__ob__属性为this(当前的Observer实例), __ob__不可枚举
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       const augment = hasProto
@@ -81,6 +92,9 @@ export class Observer {
  * Augment an target Object or Array by intercepting
  * the prototype chain using __proto__
  */
+/* zh-cn
+ * 通过连接原型链的方式对target对象进行补充, 使target可以获取到src上的方法和属性(同名方法无法获取, 会被shadow)
+ */
 function protoAugment (target, src: Object, keys: any) {
   /* eslint-disable no-proto */
   target.__proto__ = src
@@ -92,6 +106,9 @@ function protoAugment (target, src: Object, keys: any) {
  * hidden properties.
  */
 /* istanbul ignore next */
+/** zh-cn
+ * 通过定义不可枚举属性的方式对target对象进行补充, 同名情况下src会覆盖target
+ */
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i]
