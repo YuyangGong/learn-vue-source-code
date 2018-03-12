@@ -22,6 +22,11 @@ let uid = 0
  * and fires callback when the expression value changes.
  * This is used for both the $watch() api and directives.
  */
+/**zh-cn
+ * 一个watcher 解析一个表达式, 搜集依赖,
+ * 并且在表达式的值改变的时候触发回调,
+ * watcher常常用于$watch api和directives
+ */
 export default class Watcher {
   vm: Component;
   expression: string;
@@ -69,13 +74,18 @@ export default class Watcher {
     this.newDeps = []
     this.depIds = new Set()
     this.newDepIds = new Set()
+    // WHY: 开发环境直接设置expression为expOrFn的字符串形式？
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // 解析表达式
+    // 当expOrFn为函数时
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 此时expOrFn为路径, 如`obj.attr1`, parsePath将返回一个函数, 
+      // 此函数接受一个对象为参数, 返回此对象相应属性(如上文中的obj.attr1)的值
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = function () {}
@@ -87,6 +97,7 @@ export default class Watcher {
         )
       }
     }
+    // 是否立即触发, 如果lazy为true, 将立即以表达式的当前值触发回调
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -102,6 +113,7 @@ export default class Watcher {
     try {
       value = this.getter.call(vm, vm)
     } catch (e) {
+      // WHY： 这里this.user具体代表的是什么意思？开发环境？
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
@@ -110,6 +122,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 如果deep为true, 则递归遍历value对象, 触发每个属性的getter
       if (this.deep) {
         traverse(value)
       }
@@ -121,6 +134,9 @@ export default class Watcher {
 
   /**
    * Add a dependency to this directive.
+   */
+  /**zh-cn
+   * 给directive增加依赖
    */
   addDep (dep: Dep) {
     const id = dep.id
@@ -135,6 +151,9 @@ export default class Watcher {
 
   /**
    * Clean up for dependency collection.
+   */
+  /**zh-cn
+   * 清除依赖集合
    */
   cleanupDeps () {
     let i = this.deps.length
@@ -158,12 +177,19 @@ export default class Watcher {
    * Subscriber interface.
    * Will be called when a dependency changes.
    */
+  /**zh-cn
+   * 订阅者接口
+   * 将在依赖改变时候调用
+   */
   update () {
     /* istanbul ignore else */
+    // lazy为true时, 不run, 设置dirty为true
     if (this.lazy) {
       this.dirty = true
+    // 同步run
     } else if (this.sync) {
       this.run()
+    // 放在队列中, nextTick的时候run
     } else {
       queueWatcher(this)
     }
@@ -173,18 +199,28 @@ export default class Watcher {
    * Scheduler job interface.
    * Will be called by the scheduler.
    */
+  /**zh-cn
+   * scheduler job接口
+   * 将被scheduler调用
+   */
   run () {
     if (this.active) {
       const value = this.get()
+      // 
       if (
         value !== this.value ||
         // Deep watchers and watchers on Object/Arrays should fire even
         // when the value is the same, because the value may
         // have mutated.
+        /**zh-cn
+         * 当设置了watcher的deep为true, 或观察对象/数组时, 
+         * 当值相同时, 应该同样也触发回调, 因为其属性可能被改变(引用没变)
+         */
         isObject(value) ||
         this.deep
       ) {
         // set new value
+        // 设置新value
         const oldValue = this.value
         this.value = value
         if (this.user) {
@@ -204,6 +240,10 @@ export default class Watcher {
    * Evaluate the value of the watcher.
    * This only gets called for lazy watchers.
    */
+  /**zh-cn
+   * 获取watcher的value
+   * 这仅仅在lazy watcher中才会用到
+   */
   evaluate () {
     this.value = this.get()
     this.dirty = false
@@ -211,6 +251,9 @@ export default class Watcher {
 
   /**
    * Depend on all deps collected by this watcher.
+   */
+  /**zh-cn
+   * 收集此watcher的所有依赖
    */
   depend () {
     let i = this.deps.length
@@ -222,11 +265,18 @@ export default class Watcher {
   /**
    * Remove self from all dependencies' subscriber list.
    */
+  /**zh-cn
+   * 将目前watcher从所有的依赖订阅列表中移除
+   */
   teardown () {
     if (this.active) {
       // remove self from vm's watcher list
       // this is a somewhat expensive operation so we skip it
       // if the vm is being destroyed.
+      /**zh-cn
+       * 将目前的watcher从vm的watch列表中移除,
+       * 这步操作性能开销较大, 当vm已经被移除时, 跳过这步
+       */
       if (!this.vm._isBeingDestroyed) {
         remove(this.vm._watchers, this)
       }
