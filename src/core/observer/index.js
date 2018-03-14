@@ -1,4 +1,3 @@
-
 /* @flow */
 
 import Dep from './dep'
@@ -71,7 +70,7 @@ export class Observer {
    * value type is Object.
    */
   /**zh-cn
-   * 遍历对象的每个属性并将其转换为getter/setters
+   * 遍历对象自身的每个可枚举属性并将其转换为getter/setters
    */
   walk (obj: Object) {
     const keys = Object.keys(obj)
@@ -134,12 +133,12 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * 如果value已经被observe过, 则返回已经存在的observer实例
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
-  // 如不是对象 或者是vm实例, 则直接返回(不需要observe)
+  // 不需要observe对象(isObject内部是用typeof判断的, 也包括Array)以外的类型和vm实例
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
-  // 如果已经被观察过就返回已经存在的observe实例
+  // 如果已经被观察过就返回已经存在的observe实例, 避免重复
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   // 满足以下5点才回对value进行观察
@@ -147,7 +146,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 2. 非服务器端渲染
   // 3. 数组或纯对象
   // 4. 对象(数组)可拓展, (没有被Object.seal 或 Object.freeze限制), 可以创建新属性
-  // 5. 不是Vue实例 (WHY)
+  // 5. 不是Vue实例
   } else if (
     observerState.shouldConvert &&
     !isServerRendering() &&
@@ -180,7 +179,9 @@ export function defineReactive (
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
-  // 当property存在, 但是其不可配置时, 直接返回, 不定义其响应式
+  // 若此属性不可配置, 直接返回。 
+  // 不可配置代表此属性, 无法修改, 也无法删除, 其是**固定的**, 不需要响应式.
+  // 而且, 当对不可配置的属性进行defineProperty时, 也会报如`Cannot redefine property`的error。
   if (property && property.configurable === false) {
     return
   }
@@ -195,7 +196,7 @@ export function defineReactive (
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
-    // get和set本质上操作的都是val, 利用词法作用域保存在context中
+    // 这里的get和set本质上操作的都是val, 利用词法作用域保存在context中
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
