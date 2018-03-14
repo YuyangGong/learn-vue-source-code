@@ -138,7 +138,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     return
   }
   let ob: Observer | void
-  // 如果已经被观察过就返回已经存在的observe实例, 避免重复
+  // 如果已经被观察过就返回已经存在的observe实例, 不需要额外观察
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   // 满足以下5点才回对value进行观察
