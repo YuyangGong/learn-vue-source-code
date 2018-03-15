@@ -106,6 +106,7 @@ export default class Watcher {
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
+  // 执行getter并重新收集依赖
   get () {
     pushTarget(this)
     let value
@@ -140,9 +141,13 @@ export default class Watcher {
    */
   addDep (dep: Dep) {
     const id = dep.id
+    // 当已存在于newDepIds的id, 直接忽略
     if (!this.newDepIds.has(id)) {
+      // 收集依赖dep的id及对象到newDepIds以及newDeps上
       this.newDepIds.add(id)
       this.newDeps.push(dep)
+      // 检查此dep是否已经存在于id中,
+      // 通过depIds, 来记录当前watcher已经订阅的dep,避免重复订阅dep
       if (!this.depIds.has(id)) {
         dep.addSub(this)
       }
@@ -159,10 +164,12 @@ export default class Watcher {
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
+      // 当不存在于新生代依赖中就直接从dep中移除
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
     }
+    // 移除原本的老生代依赖, 并将原本的新生代依赖转换为老生代
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp
