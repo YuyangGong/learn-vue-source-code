@@ -24,6 +24,7 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 定位到第一个非abstract父实例(比如类似keep-alive这样的组件就会跳过)
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
@@ -49,9 +50,11 @@ export function initLifecycle (vm: Component) {
 export function lifecycleMixin (Vue: Class<Component>) {
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
+    // 如果已经挂载了就触发beforeUpdate钩子
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate')
     }
+    // 保留前次节点的数据
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const prevActiveInstance = activeInstance
@@ -59,8 +62,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
+    // __path__方法在入口中注入, 基于渲染后端使用
     if (!prevVnode) {
       // initial render
+      // 如果先前不存在Vnode, 代表初次渲染
       vm.$el = vm.__patch__(
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
@@ -71,10 +76,12 @@ export function lifecycleMixin (Vue: Class<Component>) {
       vm.$options._parentElm = vm.$options._refElm = null
     } else {
       // updates
+      // 更新
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     activeInstance = prevActiveInstance
     // update __vue__ reference
+    // 更新__vue__的引用
     if (prevEl) {
       prevEl.__vue__ = null
     }
@@ -89,6 +96,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // updated in a parent's updated hook.
   }
 
+  // 强制更新, 直接触发watcher
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
@@ -98,17 +106,21 @@ export function lifecycleMixin (Vue: Class<Component>) {
 
   Vue.prototype.$destroy = function () {
     const vm: Component = this
+    // 已销毁的直接跳过
     if (vm._isBeingDestroyed) {
       return
     }
+    // 执行beforeDesctroy钩子
     callHook(vm, 'beforeDestroy')
     vm._isBeingDestroyed = true
     // remove self from parent
+    // 将自身从父实例的$children对象中除去
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 卸载监听器
     if (vm._watcher) {
       vm._watcher.teardown()
     }
@@ -124,10 +136,13 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // call the last hook...
     vm._isDestroyed = true
     // invoke destroy hooks on current rendered tree
+    // 销毁vnode
     vm.__patch__(vm._vnode, null)
     // fire destroyed hook
+    // 触发destroyed钩子
     callHook(vm, 'destroyed')
     // turn off all instance listeners.
+    // 解绑所有事件
     vm.$off()
     // remove __vue__ reference
     if (vm.$el) {
@@ -201,6 +216,7 @@ export function mountComponent (
 
   // manually mounted instance, call mounted on self
   // mounted is called for render-created child components in its inserted hook
+  // 
   if (vm.$vnode == null) {
     vm._isMounted = true
     callHook(vm, 'mounted')

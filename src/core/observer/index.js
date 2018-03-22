@@ -219,6 +219,7 @@ export function defineReactive (
       }
       /* eslint-enable no-self-compare */
       // WHY: 只有非生产环境才能使用customSetter?
+      // 对, 用于报错警告
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter()
       }
