@@ -6,6 +6,9 @@ import { defineReactive, observerState } from '../observer/index'
 
 export function initProvide (vm: Component) {
   const provide = vm.$options.provide
+  // 将provide挂载在实例的_provided上,
+  // 除了对象以外，还可以传函数, 如果传的时候函数则绑定
+  // 其this到vm实例上调用
   if (provide) {
     vm._provided = typeof provide === 'function'
       ? provide.call(vm)

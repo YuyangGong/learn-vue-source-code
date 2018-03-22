@@ -130,7 +130,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
 /**zh-cn
  * 尝试为传入的value创建一个observer实例,
  * 如果成功observed则返回这个新的observer实例,
- * 如果value已经被observe过, 则返回已经存在的observer实例
+ * 如果value已经被observe过, 则返回已经存在的observer实例(主要用于数组)
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 不需要observe对象(isObject内部是用typeof判断的, 也包括Array)以外的类型和vm实例

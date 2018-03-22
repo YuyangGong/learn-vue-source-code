@@ -19,7 +19,8 @@ import {
 
 export function initGlobalAPI (Vue: GlobalAPI) {
   // config
-  const configDef = {}
+  // Vue的config, 不可直接在Vue.config上进行更改
+  const configDef = {} 
   configDef.get = () => config
   if (process.env.NODE_ENV !== 'production') {
     configDef.set = () => {
@@ -33,6 +34,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
+  // 暴露util方法
   Vue.util = {
     warn,
     extend,
@@ -40,6 +42,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     defineReactive
   }
 
+  // 暴露set delete nextTick Vue全局方法
   Vue.set = set
   Vue.delete = del
   Vue.nextTick = nextTick
