@@ -289,6 +289,7 @@ export function updateChildComponent (
   }
 }
 
+// 是否存在于inactive树中
 function isInInactiveTree (vm) {
   while (vm && (vm = vm.$parent)) {
     if (vm._inactive) return true
@@ -299,6 +300,7 @@ function isInInactiveTree (vm) {
 export function activateChildComponent (vm: Component, direct?: boolean) {
   if (direct) {
     vm._directInactive = false
+    // 如果存在于inactive树中, 则直接跳过, 不分发activate事件
     if (isInInactiveTree(vm)) {
       return
     }
@@ -307,6 +309,7 @@ export function activateChildComponent (vm: Component, direct?: boolean) {
   }
   if (vm._inactive || vm._inactive === null) {
     vm._inactive = false
+    // 递归active后代组件, 触发后代的active钩子
     for (let i = 0; i < vm.$children.length; i++) {
       activateChildComponent(vm.$children[i])
     }
@@ -317,12 +320,15 @@ export function activateChildComponent (vm: Component, direct?: boolean) {
 export function deactivateChildComponent (vm: Component, direct?: boolean) {
   if (direct) {
     vm._directInactive = true
+    // 如果已经存在于inactive树中, 则直接跳过
     if (isInInactiveTree(vm)) {
       return
     }
   }
+  // 如果已经被inactive了, 也跳过
   if (!vm._inactive) {
     vm._inactive = true
+    // 递归inactive后代组件, 触发后代的deactivated钩子
     for (let i = 0; i < vm.$children.length; i++) {
       deactivateChildComponent(vm.$children[i])
     }
